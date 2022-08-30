@@ -1,0 +1,90 @@
+version: '3'
+services:
+
+  web01:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: web01
+    container_name: web01
+    restart: always
+    tty: true
+    networks:
+      - asa-network
+
+  web02:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.web2
+    image: web02
+    container_name: web02
+    restart: always
+    tty: true
+    networks:
+      - asa-network
+      
+  proxy:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.proxy
+    image: proxy
+    container_name: proxy
+    restart: always
+    tty: true
+    ports:
+      - "80:80"
+    depends_on:
+      - web01
+      - web02
+      - webmail
+    networks:
+      - asa-network
+
+  dns:
+    build:
+      context: ./dns
+      dockerfile: Dockerfile
+    image: dns
+    container_name: dns
+    restart: always
+    tty: true
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    networks:
+      - asa-network
+  
+  sv-mail:
+    build: ./sv-mail
+    image: sv-mail
+    container_name: sv-mail
+    ports:
+      - "25:25/tcp"
+      - "100:100/tcp"
+      - "143:143/tcp"
+      - "587:587/tcp"
+      - "993:993/tcp"
+      - "995:995/tcp"
+    networks:
+      - asa-network
+
+  webmail:
+    build:
+      context: ./webmail
+    image: webmail
+    container_name: webmail
+    restart: always
+    tty: true
+    #ports:
+    #  - "8080:80"
+    volumes:
+      - ./webmail/rainloop:/var/www/html/rainloop
+    depends_on:
+      - sv-mail
+    networks:
+      - asa-network
+
+#Docker Networks
+networks:
+  asa-network:
+    driver: bridge
